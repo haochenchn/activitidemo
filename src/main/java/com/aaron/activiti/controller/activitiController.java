@@ -1,6 +1,7 @@
 package com.aaron.activiti.controller;
 
 import com.aaron.activiti.model.*;
+import com.aaron.activiti.util.Const;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.activiti.bpmn.converter.BpmnXMLConverter;
@@ -16,6 +17,7 @@ import org.activiti.engine.RuntimeService;
 import org.activiti.engine.TaskService;
 import org.activiti.engine.history.HistoricTaskInstance;
 import org.activiti.engine.history.HistoricVariableInstance;
+import org.activiti.engine.identity.User;
 import org.activiti.engine.repository.Deployment;
 import org.activiti.engine.repository.Model;
 import org.activiti.engine.repository.ProcessDefinition;
@@ -63,38 +65,41 @@ public class activitiController {
     public void create(ActivitiModel activiti,HttpServletRequest request, HttpServletResponse response) {
         Map<String, String> map = new HashMap<String, String>();
         Model newModel = repositoryService.newModel();
-        try {
-            ObjectMapper objectMapper = new ObjectMapper();
-            ObjectNode modelObjectNode = objectMapper.createObjectNode();
-            modelObjectNode.put(ModelDataJsonConstants.MODEL_NAME,
-                    activiti.getName());
-            modelObjectNode.put(ModelDataJsonConstants.MODEL_REVISION, 1);
-            modelObjectNode.put(ModelDataJsonConstants.MODEL_DESCRIPTION,
-                    StringUtils.defaultString(activiti.getDescription()));
-            newModel.setMetaInfo(modelObjectNode.toString());
-            newModel.setName(activiti.getName());
-            newModel.setKey(StringUtils.defaultString(activiti.getKey()));
-            repositoryService.saveModel(newModel);
-            ObjectNode editorNode = objectMapper.createObjectNode();
-            editorNode.put("id", "canvas");
-            editorNode.put("resourceId", "canvas");
-            ObjectNode stencilSetNode = objectMapper.createObjectNode();
-            stencilSetNode.put("namespace",
-                    "http://b3mn.org/stencilset/bpmn2.0#");
-            editorNode.put("stencilset", stencilSetNode);
-            repositoryService.addModelEditorSource(newModel.getId(),
-                    editorNode.toString().getBytes("utf-8"));
-            response.sendRedirect(request.getContextPath() +
-                    "/modeler.html?modelId="
-                    + newModel.getId());
-        } catch (Exception e) {
-            e.getStackTrace();
+        User user = getAccount(request);
+        if (user != null) {
+            try {
+                ObjectMapper objectMapper = new ObjectMapper();
+                ObjectNode modelObjectNode = objectMapper.createObjectNode();
+                modelObjectNode.put(ModelDataJsonConstants.MODEL_NAME,
+                        activiti.getName());
+                modelObjectNode.put(ModelDataJsonConstants.MODEL_REVISION, 1);
+                modelObjectNode.put(ModelDataJsonConstants.MODEL_DESCRIPTION,
+                        StringUtils.defaultString(activiti.getDescription()));
+                newModel.setMetaInfo(modelObjectNode.toString());
+                newModel.setName(activiti.getName());
+                newModel.setKey(StringUtils.defaultString(activiti.getKey()));
+                repositoryService.saveModel(newModel);
+                ObjectNode editorNode = objectMapper.createObjectNode();
+                editorNode.put("id", "canvas");
+                editorNode.put("resourceId", "canvas");
+                ObjectNode stencilSetNode = objectMapper.createObjectNode();
+                stencilSetNode.put("namespace",
+                        "http://b3mn.org/stencilset/bpmn2.0#");
+                editorNode.put("stencilset", stencilSetNode);
+                repositoryService.addModelEditorSource(newModel.getId(),
+                        editorNode.toString().getBytes("utf-8"));
+                response.sendRedirect(request.getContextPath() +
+                        "/modeler.html?modelId="
+                        + newModel.getId());
+            } catch (Exception e) {
+                e.getStackTrace();
+            }
+            /*map.put("isLogin", "yes");
+            map.put("userName", "chenhao");
+            map.put("path", "/service/editor?id=");
+            map.put("modelId", newModel.getId());
+            return map;*/
         }
-        /*map.put("isLogin", "yes");
-        map.put("userName", "chenhao");
-        map.put("path", "/service/editor?id=");
-        map.put("modelId", newModel.getId());
-        return map;*/
     }
 
     /**
@@ -102,32 +107,37 @@ public class activitiController {
      */
     @RequestMapping(value = "/modelList", method = RequestMethod.POST, produces = "application/json;charset=utf-8")
     @ResponseBody
-    public Object modelList() {
+    public Object modelList(HttpServletRequest req) {
         Map<String, Object> map = new HashMap<String, Object>();
         List<ActivitiModel> modelList = new ArrayList<ActivitiModel>();
-        try {
-            List<Model> modelList1 = repositoryService.createModelQuery()
-                    .list();
-            if (modelList1 != null && modelList1.size() > 0) {
-                for (Model model : modelList1) {
-                    ActivitiModel activitiModel = new ActivitiModel();
-                    activitiModel.setId(model.getId());
-                    activitiModel.setCreateTime(model.getCreateTime());
-                    activitiModel.setDescription(model.getMetaInfo());
-                    activitiModel.setKey(model.getKey());
-                    activitiModel.setLastUpdateTime(model
-                            .getLastUpdateTime());
-                    activitiModel.setName(model.getName());
-                    activitiModel.setVersion(model.getVersion());
-                    modelList.add(activitiModel);
+        User user = getAccount(req);
+        if (user != null) {
+            try {
+                List<Model> modelList1 = repositoryService.createModelQuery()
+                        .list();
+                if (modelList1 != null && modelList1.size() > 0) {
+                    for (Model model : modelList1) {
+                        ActivitiModel activitiModel = new ActivitiModel();
+                        activitiModel.setId(model.getId());
+                        activitiModel.setCreateTime(model.getCreateTime());
+                        activitiModel.setDescription(model.getMetaInfo());
+                        activitiModel.setKey(model.getKey());
+                        activitiModel.setLastUpdateTime(model
+                                .getLastUpdateTime());
+                        activitiModel.setName(model.getName());
+                        activitiModel.setVersion(model.getVersion());
+                        modelList.add(activitiModel);
+                    }
                 }
+                map.put("result", "success");
+                map.put("data", modelList);
+            } catch (Exception e) {
+                e.getStackTrace();
             }
-            map.put("result", "success");
-            map.put("data", modelList);
-        } catch (Exception e) {
-            e.getStackTrace();
+            map.put("isLogin", "yes");
+        }else {
+            map.put("isLogin", "no");
         }
-
         return map;
     }
     /**
@@ -138,27 +148,33 @@ public class activitiController {
      */
     @RequestMapping(value = "/deploye", method = RequestMethod.POST, produces = "application/json;charset=utf-8")
     @ResponseBody
-    public Object deploye(@RequestBody ActivitiModel activitiModel) {
+    public Object deploye(@RequestBody ActivitiModel activitiModel,HttpServletRequest req) {
         Map<String, Object> map = new HashMap<String, Object>();
         String modelId = activitiModel.getId();
-        try {
-            Model modelData = repositoryService.getModel(modelId);
-            ObjectNode modelNode = (ObjectNode) new ObjectMapper()
-                    .readTree(repositoryService
-                            .getModelEditorSource(modelData.getId()));
-            byte[] bpmnBytes = null;
-            BpmnModel model = new BpmnJsonConverter()
-                    .convertToBpmnModel(modelNode);
-            bpmnBytes = new BpmnXMLConverter().convertToXML(model);
-            String processName = modelData.getName() + ".bpmn20.xml";
-            Deployment deployment = repositoryService.createDeployment()
-                    .name(modelData.getName())
-                    .addString(processName, new String(bpmnBytes)).deploy();
-            if (deployment != null && deployment.getId() != null) {
-                map.put("result", "success");
+        User user = getAccount(req);
+        if (user != null) {
+            try {
+                Model modelData = repositoryService.getModel(modelId);
+                ObjectNode modelNode = (ObjectNode) new ObjectMapper()
+                        .readTree(repositoryService
+                                .getModelEditorSource(modelData.getId()));
+                byte[] bpmnBytes = null;
+                BpmnModel model = new BpmnJsonConverter()
+                        .convertToBpmnModel(modelNode);
+                bpmnBytes = new BpmnXMLConverter().convertToXML(model);
+                String processName = modelData.getName() + ".bpmn20.xml";
+                Deployment deployment = repositoryService.createDeployment()
+                        .name(modelData.getName())
+                        .addString(processName, new String(bpmnBytes)).deploy();
+                if (deployment != null && deployment.getId() != null) {
+                    map.put("result", "success");
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
             }
-        } catch (Exception e) {
-            e.printStackTrace();
+            map.put("isLogin", "yes");
+        }else {
+            map.put("isLogin", "no");
         }
         return map;
     }
@@ -171,6 +187,8 @@ public class activitiController {
     @ResponseBody
     public Object processList(HttpServletRequest req) {
         Map<String, Object> map = new HashMap<>();
+        User user = getAccount(req);
+        if (user != null) {
             List<ProcessModel> processList = new ArrayList<>();
             List<ProcessDefinition> processList1 = repositoryService
                     .createProcessDefinitionQuery().list();
@@ -186,11 +204,13 @@ public class activitiController {
                         .getDiagramResourceName());
                 processList.add(processModel);
             }
-            map.put("userName",
-                    (String) req.getSession().getAttribute("userName"));
+            map.put("isLogin", "yes");
+            map.put("userName",user.getFirstName());
             map.put("result", "success");
             map.put("data", processList);
-
+        }else {
+            map.put("isLogin", "no");
+        }
         return map;
     }
 
@@ -230,50 +250,55 @@ public class activitiController {
     @ResponseBody
    public Object startProcess(@RequestBody ApplyModel applyModel,
                                HttpServletRequest req) throws XMLStreamException {
-        Map<String, String> map = new HashMap<String, String>();
-        if (applyModel != null) {
-            String processKey = applyModel.getKey();
-            String processDefId = applyModel.getProDefId();
-            // //////////////////////////
-            Iterator<FlowElement> iterator = this.findFlow(processDefId);
-            Map<String, Object> varables = new HashMap<String, Object>();
-            int i = 1;
-            while (iterator.hasNext()) {
-                FlowElement flowElement = iterator.next();
-                // 申请人
-                if (flowElement.getClass().getSimpleName()
-                        .equals("UserTask")
-                        && i == 1) {
-                    UserTask userTask = (UserTask) flowElement;
-                    String assignee = userTask.getAssignee();
-                    int index1 = assignee.indexOf("{");
-                    int index2 = assignee.indexOf("}");
-                    varables.put(assignee.substring(index1 + 1, index2),
-                            applyModel.getAppPerson());
-                    varables.put("cause", applyModel.getCause());
-                    varables.put("content", applyModel.getContent());
-                    varables.put("taskType", applyModel.getName());
-                    i++;
-                    // 下一个处理人
-                } else if (flowElement.getClass().getSimpleName()
-                        .equals("UserTask")
-                        && i == 2) {
-                    UserTask userTask = (UserTask) flowElement;
-                    String assignee = userTask.getAssignee();
-                    int index1 = assignee.indexOf("{");
-                    int index2 = assignee.indexOf("}");
-                    varables.put(assignee.substring(index1 + 1, index2),
-                            applyModel.getProPerson());
-                    break;
+        Map<String, String> map = new HashMap<>();
+        User user = getAccount(req);
+        if (user != null) {
+            if (applyModel != null) {
+                String processKey = applyModel.getKey();
+                String processDefId = applyModel.getProDefId();
+                // //////////////////////////
+                Iterator<FlowElement> iterator = this.findFlow(processDefId);
+                Map<String, Object> varables = new HashMap<>();
+                int i = 1;
+                while (iterator.hasNext()) {
+                    FlowElement flowElement = iterator.next();
+                    // 申请人
+                    if (flowElement.getClass().getSimpleName()
+                            .equals("UserTask")
+                            && i == 1) {
+                        UserTask userTask = (UserTask) flowElement;
+                        String assignee = userTask.getAssignee();
+                        int index1 = assignee.indexOf("{");
+                        int index2 = assignee.indexOf("}");
+                        varables.put(assignee.substring(index1 + 1, index2),
+                                applyModel.getAppPerson());
+                        varables.put("cause", applyModel.getCause());
+                        varables.put("content", applyModel.getContent());
+                        varables.put("taskType", applyModel.getName());
+                        i++;
+                        // 下一个处理人
+                    } else if (flowElement.getClass().getSimpleName()
+                            .equals("UserTask")
+                            && i == 2) {
+                        UserTask userTask = (UserTask) flowElement;
+                        String assignee = userTask.getAssignee();
+                        int index1 = assignee.indexOf("{");
+                        int index2 = assignee.indexOf("}");
+                        varables.put(assignee.substring(index1 + 1, index2),
+                                applyModel.getProPerson());
+                        break;
+                    }
                 }
+                // ///////////////////////////
+                runtimeService.startProcessInstanceByKey(processKey, varables);
+                map.put("userName",user.getId());
+                map.put("result", "success");
+            } else {
+                map.put("result", "fail");
             }
-            // ///////////////////////////
-            runtimeService.startProcessInstanceByKey(processKey, varables);
-            map.put("userName",
-                    (String) req.getSession().getAttribute("userName"));
-            map.put("result", "success");
-        } else {
-            map.put("result", "fail");
+            map.put("isLogin", "yes");
+        }else{
+            map.put("isLogin", "no");
         }
 
         return map;
@@ -286,11 +311,10 @@ public class activitiController {
     @RequestMapping(value = "/findTask", method = RequestMethod.POST, produces = "application/json;charset=utf-8")
     @ResponseBody
     public Object findTask(HttpServletRequest req) throws XMLStreamException {
-        Map<String, Object> map = new HashMap<String, Object>();
-//        boolean isLogin = this.isLogin(req);
-        boolean isLogin = true;
-        if (isLogin) {
-            List<TaskModel> taskList = new ArrayList<TaskModel>();
+        Map<String, Object> map = new HashMap<>();
+        User user = getAccount(req);
+        if (user != null) {
+            List<TaskModel> taskList = new ArrayList<>();
             HttpSession session = req.getSession();
             String assginee = (String) session.getAttribute("userName");
             List<Task> taskList1 = taskService.createTaskQuery()
@@ -369,8 +393,7 @@ public class activitiController {
                 }
             }
             map.put("isLogin", "yes");
-            map.put("userName",
-                    (String) req.getSession().getAttribute("userName"));
+            map.put("userName",user.getId());
             map.put("result", "success");
             map.put("data", taskList);
         } else {
@@ -390,9 +413,8 @@ public class activitiController {
     @ResponseBody
     public Object completeTask(@RequestBody TaskModel taskModel,
                                HttpServletRequest req) throws XMLStreamException {
-//        boolean isLogin = this.isLogin(req);
-        boolean isLogin = true;
-        if (isLogin) {
+        User user = getAccount(req);
+        if (user != null) {
             String taskId = taskModel.getId();
             // 1、查task
             Task task = taskService.createTaskQuery().taskId(taskId)
@@ -402,7 +424,7 @@ public class activitiController {
                     .getProcessInstanceId());
             Set<String> keysSet = variables.keySet();
             Iterator<String> keySet = keysSet.iterator();
-            Map<String, Object> variables1 = new HashMap<String, Object>();
+            Map<String, Object> variables1 = new HashMap<>();
             String assignee = task.getAssignee();
             // 判断之后是否还有任务
             // ////////////////
@@ -466,16 +488,14 @@ public class activitiController {
     @RequestMapping(value = "/hisTask", method = RequestMethod.POST, produces = "application/json;charset=utf-8")
     @ResponseBody
     public Object hisTask(HttpServletRequest req) {
-        Map<String, Object> map = new HashMap<String, Object>();
-//        boolean isLogin = this.isLogin(req);
-        boolean isLogin = true;
-        if (isLogin) {
-            HttpSession session = req.getSession();
-            String assignee = (String) session.getAttribute("userName");
+        Map<String, Object> map = new HashMap<>();
+        User user = getAccount(req);
+        if (user != null) {
+            String assignee = user.getId();
             List<HistoricTaskInstance> hisTaskList1 = historyService
                     .createHistoricTaskInstanceQuery().taskAssignee(assignee)
                     .finished().list();
-            List<HisTaskModel> hisTaskList = new ArrayList<HisTaskModel>();
+            List<HisTaskModel> hisTaskList = new ArrayList<>();
             for (HistoricTaskInstance hisTask : hisTaskList1) {
                 HisTaskModel hisModel = new HisTaskModel();
                 List<HistoricVariableInstance> hisList = historyService
@@ -492,8 +512,6 @@ public class activitiController {
                         hisModel.setTaskType((String) hisVariable.getValue());
                     }
                 }
-
-
                 hisModel.setAssignee(hisTask.getAssignee());
                 hisModel.setEndTime(hisTask.getEndTime());
                 hisModel.setId(hisTask.getId());
@@ -503,8 +521,7 @@ public class activitiController {
                 hisTaskList.add(hisModel);
             }
             map.put("isLogin", "yes");
-            map.put("userName",
-                    (String) req.getSession().getAttribute("userName"));
+            map.put("userName",user.getId());
             map.put("result", "success");
             map.put("data", hisTaskList);
         } else {
@@ -513,4 +530,13 @@ public class activitiController {
         return map;
     }
 
+    /**
+     * 验证是否登录
+     * @param req
+     * @return
+     */
+    public User getAccount(HttpServletRequest req){
+        User user = (User)req.getSession().getAttribute(Const.SESSION_ACCOUNT);
+        return user;
+    }
 }

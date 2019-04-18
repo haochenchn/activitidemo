@@ -142,7 +142,7 @@ public class activitiController {
     }
     /**
      * 根据模型id部署流程定义
-     * 与流程定义相关的有3张表，分别是act_ge_bytearray、act_re_procdef和act_re_deployment。当然了，如果更准确的说，在我的自定义流程中，流程定义需要用到流程模型相关的数据，也可以说流程定义相关的就有四张表，也包括model表。
+     * 与流程定义相关的有3张表，分别是act_ge_bytearray、act_re_procdef和act_re_deployment。当然了，如果更准确的说，在自定义流程中，流程定义需要用到流程模型相关的数据，也可以说流程定义相关的就有四张表，也包括model表。
      * 根据前端传入的deploymentId部署流程定义，这里还是使用repositoryService进行操作，大致上的过程就是根据deploymentId查询出创建模型时生成的相关文件，然后进行一定的转换后进行部署
      * 成功部署以后，bytearray表中会再次增加两条数据，同时act_re_procdef和act_re_deployment这两张表也都会各自出现一条对应的数据
      */
@@ -171,6 +171,7 @@ public class activitiController {
                 }
             } catch (Exception e) {
                 e.printStackTrace();
+                map.put("result", "error");
             }
             map.put("isLogin", "yes");
         }else {
@@ -270,8 +271,12 @@ public class activitiController {
                         String assignee = userTask.getAssignee();
                         int index1 = assignee.indexOf("{");
                         int index2 = assignee.indexOf("}");
-                        varables.put(assignee.substring(index1 + 1, index2),
-                                applyModel.getAppPerson());
+                        if(index1 > -1 && index2 > -1) {
+                            varables.put(assignee.substring(index1 + 1, index2),
+                                    applyModel.getProPerson());
+                        }else {
+                            varables.put(assignee, applyModel.getAppPerson());
+                        }
                         varables.put("cause", applyModel.getCause());
                         varables.put("content", applyModel.getContent());
                         varables.put("taskType", applyModel.getName());
@@ -284,8 +289,12 @@ public class activitiController {
                         String assignee = userTask.getAssignee();
                         int index1 = assignee.indexOf("{");
                         int index2 = assignee.indexOf("}");
-                        varables.put(assignee.substring(index1 + 1, index2),
-                                applyModel.getProPerson());
+                        if(index1 > -1 && index2 > -1) {
+                            varables.put(assignee.substring(index1 + 1, index2),
+                                    applyModel.getProPerson());
+                        }else {
+                            varables.put(assignee, applyModel.getAppPerson());
+                        }
                         break;
                     }
                 }
@@ -315,8 +324,7 @@ public class activitiController {
         User user = getAccount(req);
         if (user != null) {
             List<TaskModel> taskList = new ArrayList<>();
-            HttpSession session = req.getSession();
-            String assginee = (String) session.getAttribute("userName");
+            String assginee = user.getId();
             List<Task> taskList1 = taskService.createTaskQuery()
                     .taskAssignee(assginee).list();
             if (taskList1 != null && taskList1.size() > 0) {
@@ -354,10 +362,11 @@ public class activitiController {
                                 if (classNames.equals("UserTask")) {
                                     UserTask userTask = (UserTask) flowElement;
                                     String assginee11 = userTask.getAssignee();
-                                    String assginee12 = assginee11.substring(
+                                    /*String assginee12 = assginee11.substring(
                                             assginee11.indexOf("{") + 1,
-                                            assginee11.indexOf("}"));
-                                    String assignee13 = (String) variables
+                                            assginee11.indexOf("}"));*/
+                                    String assginee12 = assginee11;
+                                            String assignee13 = (String) variables
                                             .get(assginee12);
                                     if (assginee.equals(assignee13)) {
                                         // 看下下一个节点是什么
@@ -371,12 +380,10 @@ public class activitiController {
                                             UserTask userTask2 = (UserTask) flowElement2;
                                             String assginee21 = userTask2
                                                     .getAssignee();
-                                            String assginee22 = assginee21
-                                                    .substring(
-                                                            assginee21
-                                                                    .indexOf("{") + 1,
-                                                            assginee21
-                                                                    .indexOf("}"));
+                                            /*String assginee22 = assginee21.substring(
+                                                            assginee21.indexOf("{") + 1,
+                                                            assginee21.indexOf("}"));*/
+                                            String assginee22 = assginee21;
                                             String assignee23 = (String) variables
                                                     .get(assginee22);
                                             taskModel.setNextPerson(assignee23);
@@ -444,11 +451,11 @@ public class activitiController {
                         if (classNames.equals("UserTask")) {
                             UserTask userTask = (UserTask) flowElement;
                             String assginee11 = userTask.getAssignee();
-                            String assginee12 = assginee11.substring(
+                            /*String assginee12 = assginee11.substring(
                                     assginee11.indexOf("{") + 1,
-                                    assginee11.indexOf("}"));
-                            String assignee13 = (String) variables
-                                    .get(assginee12);
+                                    assginee11.indexOf("}"));*/
+                            String assginee12 = assginee11;
+                            String assignee13 = (String) variables.get(assginee12);
                             if (assignee.equals(assignee13)) {
                                 // 看下下一个节点是什么
                                 iterator.next();
@@ -459,9 +466,10 @@ public class activitiController {
                                 if (!(classNames1.equals("EndEvent"))) {
                                     UserTask userTask2 = (UserTask) flowElement2;
                                     String assginee21 = userTask2.getAssignee();
-                                    String assginee22 = assginee21.substring(
+                                    /*String assginee22 = assginee21.substring(
                                             assginee21.indexOf("{") + 1,
-                                            assginee21.indexOf("}"));
+                                            assginee21.indexOf("}"));*/
+                                    String assginee22 = assginee21;
                                     // String assignee23 = (String) variables
                                     // .get(assginee22);
                                     String assignee23 = taskModel
@@ -474,8 +482,6 @@ public class activitiController {
                 }
             }
             taskService.complete(taskId, variables1);
-
-
         }
         return null;
     }

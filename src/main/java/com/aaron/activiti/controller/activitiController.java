@@ -1,15 +1,25 @@
 package com.aaron.activiti.controller;
 
-import com.aaron.activiti.model.ActivitiModel;
+import com.aaron.activiti.model.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.activiti.bpmn.converter.BpmnXMLConverter;
 import org.activiti.bpmn.model.BpmnModel;
+import org.activiti.bpmn.model.FlowElement;
+import org.activiti.bpmn.model.Process;
+import org.activiti.bpmn.model.UserTask;
 import org.activiti.editor.constants.ModelDataJsonConstants;
 import org.activiti.editor.language.json.converter.BpmnJsonConverter;
+import org.activiti.engine.HistoryService;
 import org.activiti.engine.RepositoryService;
+import org.activiti.engine.RuntimeService;
+import org.activiti.engine.TaskService;
+import org.activiti.engine.history.HistoricTaskInstance;
+import org.activiti.engine.history.HistoricVariableInstance;
 import org.activiti.engine.repository.Deployment;
 import org.activiti.engine.repository.Model;
+import org.activiti.engine.repository.ProcessDefinition;
+import org.activiti.engine.task.Task;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -20,10 +30,12 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import javax.servlet.http.HttpSession;
+import javax.xml.stream.XMLInputFactory;
+import javax.xml.stream.XMLStreamException;
+import javax.xml.stream.XMLStreamReader;
+import java.io.InputStream;
+import java.util.*;
 
 /**
  * @author Aaron
@@ -35,6 +47,12 @@ import java.util.Map;
 public class activitiController {
     @Autowired
     private RepositoryService repositoryService;
+    @Autowired
+    private RuntimeService runtimeService;
+    @Autowired
+    private TaskService taskService;
+    @Autowired
+    private HistoryService historyService;
 
     /**
      * 创建模型
@@ -116,6 +134,7 @@ public class activitiController {
      * 根据模型id部署流程定义
      * 与流程定义相关的有3张表，分别是act_ge_bytearray、act_re_procdef和act_re_deployment。当然了，如果更准确的说，在我的自定义流程中，流程定义需要用到流程模型相关的数据，也可以说流程定义相关的就有四张表，也包括model表。
      * 根据前端传入的deploymentId部署流程定义，这里还是使用repositoryService进行操作，大致上的过程就是根据deploymentId查询出创建模型时生成的相关文件，然后进行一定的转换后进行部署
+     * 成功部署以后，bytearray表中会再次增加两条数据，同时act_re_procdef和act_re_deployment这两张表也都会各自出现一条对应的数据
      */
     @RequestMapping(value = "/deploye", method = RequestMethod.POST, produces = "application/json;charset=utf-8")
     @ResponseBody
@@ -140,6 +159,356 @@ public class activitiController {
             }
         } catch (Exception e) {
             e.printStackTrace();
+        }
+        return map;
+    }
+
+    /**
+     * 流程定义列表
+     *
+     */
+    @RequestMapping(value = "/processList", method = RequestMethod.POST, produces = "application/json;charset=utf-8")
+    @ResponseBody
+    public Object processList(HttpServletRequest req) {
+        Map<String, Object> map = new HashMap<>();
+            List<ProcessModel> processList = new ArrayList<>();
+            List<ProcessDefinition> processList1 = repositoryService
+                    .createProcessDefinitionQuery().list();
+            for (ProcessDefinition pro : processList1) {
+                ProcessModel processModel = new ProcessModel();
+                processModel.setDeploymentId(pro.getDeploymentId());
+                processModel.setId(pro.getId());
+                processModel.setKey(pro.getKey());
+                processModel.setResourceName(pro.getResourceName());
+                processModel.setVersion(pro.getVersion());
+                processModel.setName(pro.getName());
+                processModel.setDiagramResourceName(pro
+                        .getDiagramResourceName());
+                processList.add(processModel);
+            }
+            map.put("userName",
+                    (String) req.getSession().getAttribute("userName"));
+            map.put("result", "success");
+            map.put("data", processList);
+
+        return map;
+    }
+
+
+    /**
+     * 查询流程节点
+     * 获取流程部署时xml文件里的各个节点相关信息，用来辨别当前是哪个节点，下一节点又是什么
+     */
+    public Iterator<FlowElement> findFlow(String processDefId)
+            throws XMLStreamException {
+        List<ProcessDefinition> lists = repositoryService
+                .createProcessDefinitionQuery()
+                .processDefinitionId(processDefId)
+                .orderByProcessDefinitionVersion().desc().list();
+        ProcessDefinition processDefinition = lists.get(0);
+        processDefinition.getCategory();
+        String resourceName = processDefinition.getResourceName();
+        InputStream inputStream = repositoryService.getResourceAsStream(
+                processDefinition.getDeploymentId(), resourceName);
+        BpmnXMLConverter converter = new BpmnXMLConverter();
+        XMLInputFactory factory = XMLInputFactory.newInstance();
+        XMLStreamReader reader = factory.createXMLStreamReader(inputStream);
+        BpmnModel bpmnModel = converter.convertToBpmnModel(reader);
+        Process process = bpmnModel.getMainProcess();
+        Collection<FlowElement> elements = process.getFlowElements();
+        Iterator<FlowElement> iterator = elements.iterator();
+        return iterator;
+    }
+
+    /**
+     * 启动流程
+     * 成功启动一个流程实例后，会看到(act_ru_execution、act_ru_identitylink、act_ru_task、act_ru_variable以及act_hi_actinst、act_hi_detail、
+     * act_hi_indentitylink、act_hi_procinst、act_hi_taskinst、act_hi_varinst)表中都有了数据。
+     * 除开variable和varinst中的数据条数是根据对应的流程变量多少来定的，其他都是增加了一条数据
+     */
+    @RequestMapping(value = "/startProcess", method = RequestMethod.POST, produces = "application/json;charset=utf-8")
+    @ResponseBody
+   public Object startProcess(@RequestBody ApplyModel applyModel,
+                               HttpServletRequest req) throws XMLStreamException {
+        Map<String, String> map = new HashMap<String, String>();
+        if (applyModel != null) {
+            String processKey = applyModel.getKey();
+            String processDefId = applyModel.getProDefId();
+            // //////////////////////////
+            Iterator<FlowElement> iterator = this.findFlow(processDefId);
+            Map<String, Object> varables = new HashMap<String, Object>();
+            int i = 1;
+            while (iterator.hasNext()) {
+                FlowElement flowElement = iterator.next();
+                // 申请人
+                if (flowElement.getClass().getSimpleName()
+                        .equals("UserTask")
+                        && i == 1) {
+                    UserTask userTask = (UserTask) flowElement;
+                    String assignee = userTask.getAssignee();
+                    int index1 = assignee.indexOf("{");
+                    int index2 = assignee.indexOf("}");
+                    varables.put(assignee.substring(index1 + 1, index2),
+                            applyModel.getAppPerson());
+                    varables.put("cause", applyModel.getCause());
+                    varables.put("content", applyModel.getContent());
+                    varables.put("taskType", applyModel.getName());
+                    i++;
+                    // 下一个处理人
+                } else if (flowElement.getClass().getSimpleName()
+                        .equals("UserTask")
+                        && i == 2) {
+                    UserTask userTask = (UserTask) flowElement;
+                    String assignee = userTask.getAssignee();
+                    int index1 = assignee.indexOf("{");
+                    int index2 = assignee.indexOf("}");
+                    varables.put(assignee.substring(index1 + 1, index2),
+                            applyModel.getProPerson());
+                    break;
+                }
+            }
+            // ///////////////////////////
+            runtimeService.startProcessInstanceByKey(processKey, varables);
+            map.put("userName",
+                    (String) req.getSession().getAttribute("userName"));
+            map.put("result", "success");
+        } else {
+            map.put("result", "fail");
+        }
+
+        return map;
+    }
+
+    /**
+     * 查询个人任务
+     * 流程启动以后会同时生成一个流程实例和用户任务，这个用户任务保存在act_ru_task和act_hi_task表中
+     */
+    @RequestMapping(value = "/findTask", method = RequestMethod.POST, produces = "application/json;charset=utf-8")
+    @ResponseBody
+    public Object findTask(HttpServletRequest req) throws XMLStreamException {
+        Map<String, Object> map = new HashMap<String, Object>();
+//        boolean isLogin = this.isLogin(req);
+        boolean isLogin = true;
+        if (isLogin) {
+            List<TaskModel> taskList = new ArrayList<TaskModel>();
+            HttpSession session = req.getSession();
+            String assginee = (String) session.getAttribute("userName");
+            List<Task> taskList1 = taskService.createTaskQuery()
+                    .taskAssignee(assginee).list();
+            if (taskList1 != null && taskList1.size() > 0) {
+                for (Task task : taskList1) {
+                    TaskModel taskModel = new TaskModel();
+                    taskModel.setAssignee(task.getAssignee());
+                    taskModel.setCreateTime(task.getCreateTime());
+                    taskModel.setId(task.getId());
+                    taskModel.setName(task.getName());
+                    taskModel.setProcessInstanceId(task.getProcessInstanceId());
+                    taskModel.setProcessDefId(task.getProcessDefinitionId());
+                    // 获取流程变量
+                    Map<String, Object> variables = runtimeService
+                            .getVariables(task.getProcessInstanceId());
+                    Set<String> keysSet = variables.keySet();
+                    Iterator<String> keySet = keysSet.iterator();
+                    while (keySet.hasNext()) {
+                        String key = keySet.next();
+                        if (key.endsWith("cause")) {
+                            taskModel.setCause((String) variables.get("cause"));
+                        } else if (key.endsWith("content")) {
+                            taskModel.setContent((String) variables
+                                    .get("content"));
+                        } else if (key.endsWith("taskType")) {
+                            taskModel.setTaskType((String) variables
+                                    .get("taskType"));
+                        } else if (!assginee.equals(variables.get(key))) {
+                            // 想办法查询是否还有下一个任务节点
+                            Iterator<FlowElement> iterator = this.findFlow(task
+                                    .getProcessDefinitionId());
+                            while (iterator.hasNext()) {
+                                FlowElement flowElement = iterator.next();
+                                String classNames = flowElement.getClass()
+                                        .getSimpleName();
+                                if (classNames.equals("UserTask")) {
+                                    UserTask userTask = (UserTask) flowElement;
+                                    String assginee11 = userTask.getAssignee();
+                                    String assginee12 = assginee11.substring(
+                                            assginee11.indexOf("{") + 1,
+                                            assginee11.indexOf("}"));
+                                    String assignee13 = (String) variables
+                                            .get(assginee12);
+                                    if (assginee.equals(assignee13)) {
+                                        // 看下下一个节点是什么
+                                        iterator.next();
+                                        FlowElement flowElement2 = iterator
+                                                .next();
+                                        String classNames1 = flowElement2
+                                                .getClass().getSimpleName();
+                                        // 设置下一个任务人
+                                        if (!(classNames1.equals("EndEvent"))) {
+                                            UserTask userTask2 = (UserTask) flowElement2;
+                                            String assginee21 = userTask2
+                                                    .getAssignee();
+                                            String assginee22 = assginee21
+                                                    .substring(
+                                                            assginee21
+                                                                    .indexOf("{") + 1,
+                                                            assginee21
+                                                                    .indexOf("}"));
+                                            String assignee23 = (String) variables
+                                                    .get(assginee22);
+                                            taskModel.setNextPerson(assignee23);
+                                        }
+                                    }
+
+
+                                }
+                            }
+                            // //////////
+                        }
+                    }
+                    taskList.add(taskModel);
+                }
+            }
+            map.put("isLogin", "yes");
+            map.put("userName",
+                    (String) req.getSession().getAttribute("userName"));
+            map.put("result", "success");
+            map.put("data", taskList);
+        } else {
+            map.put("isLogin", "no");
+        }
+        return map;
+    }
+
+    /**
+     * 完成个人任务
+     * 完成任务使用taskService调用complete方法来完成，一旦正确调用了这个方法，当前任务就会结束，进入到下一个任务，如果当前任务已经是最后一个任务，则整个流程结束。
+     * 对于已经结束的任务，act_ru_task中所存在的那条对应数据会被删除，取而代之的是，对应的act_hi_taskinst中的那条数据会增加结束时间。
+     * 上边所说的正确调用是指，如果当前任务的下一个任务设有个人任务变量或者组任务变量，那么提交的时候必须有对应的变量数据，否则会抛出异常，完成任务失败。（但是，如果下一个任务没有设置这些，提交时依旧填了流程变量是不会出错的）
+     * 下边的例子中，之所以还查询了流程节点的信息，并做了相关的处理，是为了实现针对任意数量任务的流程都能正常运行，否则不需要这么麻烦。
+     */
+    @RequestMapping(value = "/completeTask", method = RequestMethod.POST, produces = "application/json;charset=utf-8")
+    @ResponseBody
+    public Object completeTask(@RequestBody TaskModel taskModel,
+                               HttpServletRequest req) throws XMLStreamException {
+//        boolean isLogin = this.isLogin(req);
+        boolean isLogin = true;
+        if (isLogin) {
+            String taskId = taskModel.getId();
+            // 1、查task
+            Task task = taskService.createTaskQuery().taskId(taskId)
+                    .singleResult();
+            // 2、查variables
+            Map<String, Object> variables = runtimeService.getVariables(task
+                    .getProcessInstanceId());
+            Set<String> keysSet = variables.keySet();
+            Iterator<String> keySet = keysSet.iterator();
+            Map<String, Object> variables1 = new HashMap<String, Object>();
+            String assignee = task.getAssignee();
+            // 判断之后是否还有任务
+            // ////////////////
+            while (keySet.hasNext()) {
+                String key = keySet.next();
+                if (key.equals("cause") || key.equals("content")
+                        || key.equals("taskType")) {
+                    continue;
+                } else if (!(assignee.equals(variables.get(key)))) {
+                    // 3、查flowElement
+                    Iterator<FlowElement> iterator = this.findFlow(task
+                            .getProcessDefinitionId());
+                    while (iterator.hasNext()) {
+                        FlowElement flowElement = iterator.next();
+                        String classNames = flowElement.getClass()
+                                .getSimpleName();
+                        if (classNames.equals("UserTask")) {
+                            UserTask userTask = (UserTask) flowElement;
+                            String assginee11 = userTask.getAssignee();
+                            String assginee12 = assginee11.substring(
+                                    assginee11.indexOf("{") + 1,
+                                    assginee11.indexOf("}"));
+                            String assignee13 = (String) variables
+                                    .get(assginee12);
+                            if (assignee.equals(assignee13)) {
+                                // 看下下一个节点是什么
+                                iterator.next();
+                                FlowElement flowElement2 = iterator.next();
+                                String classNames1 = flowElement2.getClass()
+                                        .getSimpleName();
+                                // 设置下一个任务人
+                                if (!(classNames1.equals("EndEvent"))) {
+                                    UserTask userTask2 = (UserTask) flowElement2;
+                                    String assginee21 = userTask2.getAssignee();
+                                    String assginee22 = assginee21.substring(
+                                            assginee21.indexOf("{") + 1,
+                                            assginee21.indexOf("}"));
+                                    // String assignee23 = (String) variables
+                                    // .get(assginee22);
+                                    String assignee23 = taskModel
+                                            .getNextPerson();
+                                    variables1.put(assginee22, assignee23);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            taskService.complete(taskId, variables1);
+
+
+        }
+        return null;
+    }
+
+    /**
+     * 查询我的历史任务
+     * 需要注意的是，历史表中存在并非是单一类型的数据，就拿历史任务表来说，里边既有已经结束的任务，也有还没有结束的任务。
+     * 如果要单独查询结束了的任务，就可以调用finished()方法
+     */
+    @RequestMapping(value = "/hisTask", method = RequestMethod.POST, produces = "application/json;charset=utf-8")
+    @ResponseBody
+    public Object hisTask(HttpServletRequest req) {
+        Map<String, Object> map = new HashMap<String, Object>();
+//        boolean isLogin = this.isLogin(req);
+        boolean isLogin = true;
+        if (isLogin) {
+            HttpSession session = req.getSession();
+            String assignee = (String) session.getAttribute("userName");
+            List<HistoricTaskInstance> hisTaskList1 = historyService
+                    .createHistoricTaskInstanceQuery().taskAssignee(assignee)
+                    .finished().list();
+            List<HisTaskModel> hisTaskList = new ArrayList<HisTaskModel>();
+            for (HistoricTaskInstance hisTask : hisTaskList1) {
+                HisTaskModel hisModel = new HisTaskModel();
+                List<HistoricVariableInstance> hisList = historyService
+                        .createHistoricVariableInstanceQuery()
+                        .processInstanceId(hisTask.getProcessInstanceId())
+                        .list();
+                for (HistoricVariableInstance hisVariable : hisList) {
+                    String name = hisVariable.getVariableName();
+                    if (name.equals("content")) {
+                        hisModel.setContent((String) hisVariable.getValue());
+                    } else if (name.equals("cause")) {
+                        hisModel.setCause((String) hisVariable.getValue());
+                    } else if (name.equals("taskType")) {
+                        hisModel.setTaskType((String) hisVariable.getValue());
+                    }
+                }
+
+
+                hisModel.setAssignee(hisTask.getAssignee());
+                hisModel.setEndTime(hisTask.getEndTime());
+                hisModel.setId(hisTask.getId());
+                hisModel.setName(hisTask.getName());
+                hisModel.setProcessInstanceId(hisTask.getProcessInstanceId());
+                hisModel.setStartTime(hisTask.getStartTime());
+                hisTaskList.add(hisModel);
+            }
+            map.put("isLogin", "yes");
+            map.put("userName",
+                    (String) req.getSession().getAttribute("userName"));
+            map.put("result", "success");
+            map.put("data", hisTaskList);
+        } else {
+            map.put("isLogin", "no");
         }
         return map;
     }

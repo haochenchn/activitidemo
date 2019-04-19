@@ -111,9 +111,9 @@ $(document).ready(function(){
   baseUrl = baseUrl + shortenedUrl.substring(0, shortenedUrl.indexOf("/"));
   
   ActivitiRest.options = {
-    processInstanceHighLightsUrl: baseUrl + "/service/process-instance/{processInstanceId}/highlights?callback=?",
-    processDefinitionUrl: baseUrl + "/service/process-definition/{processDefinitionId}/diagram-layout?callback=?",
-    processDefinitionByKeyUrl: baseUrl + "/service/process-definition/{processDefinitionKey}/diagram-layout?callback=?"
+    processInstanceHighLightsUrl: baseUrl + "/process-instance/{processInstanceId}/highlights?callback=?",
+    processDefinitionUrl: baseUrl + "/process-definition/{processDefinitionId}/diagram-layout?callback=?",
+    processDefinitionByKeyUrl: baseUrl + "/process-definition/{processDefinitionKey}/diagram-layout?callback=?"
   };
   
   if (processDefinitionId) {

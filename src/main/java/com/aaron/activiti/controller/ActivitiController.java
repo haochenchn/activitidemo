@@ -24,10 +24,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -38,6 +35,7 @@ import javax.xml.stream.XMLStreamReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
 import java.util.*;
 
 /**
@@ -57,6 +55,47 @@ public class ActivitiController {
     @Autowired
     private HistoryService historyService;
 
+    /**
+     * 新建一个空模型
+     */
+    @RequestMapping(value = "/newModel")
+    public void newModel(HttpServletRequest request, HttpServletResponse response) {
+        //初始化一个空模型
+        Model model = repositoryService.newModel();
+        ObjectMapper objectMapper = new ObjectMapper();
+        //设置一些默认信息
+        String name = "new-process";
+        String description = "";
+        int revision = 1;
+        String key = "process";
+
+        try {
+            ObjectNode modelNode = objectMapper.createObjectNode();
+            modelNode.put(ModelDataJsonConstants.MODEL_NAME, name);
+            modelNode.put(ModelDataJsonConstants.MODEL_DESCRIPTION, description);
+            modelNode.put(ModelDataJsonConstants.MODEL_REVISION, revision);
+
+            model.setName(name);
+            model.setKey(key);
+            model.setMetaInfo(modelNode.toString());
+
+            repositoryService.saveModel(model);
+            String id = model.getId();
+
+            //完善ModelEditorSource
+            ObjectNode editorNode = objectMapper.createObjectNode();
+            editorNode.put("id", "canvas");
+            editorNode.put("resourceId", "canvas");
+            ObjectNode stencilSetNode = objectMapper.createObjectNode();
+            stencilSetNode.put("namespace",
+                    "http://b3mn.org/stencilset/bpmn2.0#");
+            editorNode.put("stencilset", stencilSetNode);
+            repositoryService.addModelEditorSource(id,editorNode.toString().getBytes("utf-8"));
+            response.sendRedirect(request.getContextPath() + "/modeler.html?modelId=" + id);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
     /**
      * 创建模型
      * 创建模型时相关的有act_re_model和act_ge_bytearray两个。
@@ -427,6 +466,9 @@ public class ActivitiController {
             // 1、查task
             Task task = taskService.createTaskQuery().taskId(taskId)
                     .singleResult();
+            if(task == null){
+                return "未找到任务"+taskId;
+            }
             // 2、查variables
             Map<String, Object> variables = runtimeService.getVariables(task
                     .getProcessInstanceId());
@@ -484,7 +526,7 @@ public class ActivitiController {
             }
             taskService.complete(taskId, variables1);
         }
-        return null;
+        return user.getFirstName()+"已完成任务";
     }
 
     /**

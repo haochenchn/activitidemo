@@ -118,7 +118,7 @@ public class ActivitiServiceImpl implements ActivitiService {
         new BpmnAutoLayout(model).execute();
 
         // 3. Deploy the process to the engine
-        Deployment deployment = repositoryService.createDeployment().addBpmnModel(PROCESSID+".bpmn", model).name(PROCESSID+"_deployment").deploy();
+        Deployment deployment = repositoryService.createDeployment().addBpmnModel(PROCESSID+".bpmn", model).name(PROCESSID+" Dynamic process deployment").deploy();
 
         // 4. Start a process instance
         ProcessInstance processInstance = runtimeService.startProcessInstanceByKey(PROCESSID);
@@ -129,11 +129,11 @@ public class ActivitiServiceImpl implements ActivitiService {
 
         // 6. Save process diagram to a file
         InputStream processDiagram = repositoryService.getProcessDiagram(processInstance.getProcessDefinitionId());
-        FileUtils.copyInputStreamToFile(processDiagram, new File("D:\\Test\\activiti\\"+PROCESSID+".png"));
+        FileUtils.copyInputStreamToFile(processDiagram, new File("target/"+PROCESSID+".png"));
 
         // 7. Save resulting BPMN xml to a file
         InputStream processBpmn = repositoryService.getResourceAsStream(deployment.getId(), PROCESSID+".bpmn");
-        FileUtils.copyInputStreamToFile(processBpmn,new File("D:\\Test\\activiti\\"+PROCESSID+".bpmn"));
+        FileUtils.copyInputStreamToFile(processBpmn,new File("target/"+PROCESSID+".bpmn"));
 
         System.out.println(".........end...");
     }
@@ -166,7 +166,7 @@ public class ActivitiServiceImpl implements ActivitiService {
         new BpmnAutoLayout(model).execute();
 
         // 3. Deploy the process to the engine
-        Deployment deployment = repositoryService.createDeployment().addBpmnModel(PROCESSID+".bpmn", model).name(PROCESSID+"_deployment").deploy();
+        Deployment deployment = repositoryService.createDeployment().addBpmnModel(PROCESSID+".bpmn", model).name(PROCESSID+" Dynamic process deployment").deploy();
 
         // 4. Start a process instance
         ProcessInstance processInstance = runtimeService.startProcessInstanceByKey(PROCESSID);
@@ -177,11 +177,11 @@ public class ActivitiServiceImpl implements ActivitiService {
 
         // 6. Save process diagram to a file
         InputStream processDiagram = repositoryService.getProcessDiagram(processInstance.getProcessDefinitionId());
-        FileUtils.copyInputStreamToFile(processDiagram, new File("D:\\Test\\activiti\\"+PROCESSID+".png"));
+        FileUtils.copyInputStreamToFile(processDiagram, new File("target/"+PROCESSID+".png"));
 
         // 7. Save resulting BPMN xml to a file
         InputStream processBpmn = repositoryService.getResourceAsStream(deployment.getId(), PROCESSID+".bpmn");
-        FileUtils.copyInputStreamToFile(processBpmn,new File("D:\\Test\\activiti\\"+PROCESSID+".bpmn"));
+        FileUtils.copyInputStreamToFile(processBpmn,new File("target/"+PROCESSID+".bpmn"));
 
         System.out.println(".........end...");
     }

@@ -24,7 +24,7 @@
 	</mvc:annotation-driven>
 	<mvc:default-servlet-handler/>
 	<!-- 扫描 -->
-	<context:component-scan base-package="com.aaron.activiti">
+	<context:component-scan base-package="com.aaron.**.controller">
 	   <!--<context:exclude-filter type="annotation"
 			expression="org.springframework.stereotype.Service" />
 		&lt;!&ndash;排除@Configuration注解，否则会被扫描到两次&ndash;&gt;

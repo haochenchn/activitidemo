@@ -91,6 +91,7 @@ public class ActivitiController {
                     "http://b3mn.org/stencilset/bpmn2.0#");
             editorNode.put("stencilset", stencilSetNode);
             repositoryService.addModelEditorSource(id,editorNode.toString().getBytes("utf-8"));
+            //跳转到流程编辑页面
             response.sendRedirect(request.getContextPath() + "/modeler.html?modelId=" + id);
         } catch (IOException e) {
             e.printStackTrace();

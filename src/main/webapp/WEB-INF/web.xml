@@ -4,7 +4,7 @@
          version="2.5">
     <context-param>
         <param-name>webAppRootKey</param-name>
-        <param-value>es</param-value>
+        <param-value>activitidemo</param-value>
     </context-param>
     <context-param>
         <param-name>contextConfigLocation</param-name>

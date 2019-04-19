@@ -7,4 +7,5 @@ import java.io.IOException;
  */
 public interface ActivitiService {
     void createProcess() throws IOException;
+    void createSimpleProcess() throws IOException;
 }

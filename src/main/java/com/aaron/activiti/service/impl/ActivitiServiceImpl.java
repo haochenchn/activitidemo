@@ -137,4 +137,52 @@ public class ActivitiServiceImpl implements ActivitiService {
 
         System.out.println(".........end...");
     }
+
+    public void createSimpleProcess() throws IOException {
+        System.out.println(".........createSimpleProcess start...");
+
+        // 1. Build up the model from scratch
+        BpmnModel model = new BpmnModel();
+        Process process=new Process();
+        model.addProcess(process);
+        final String PROCESSID ="process02";
+        final String PROCESSNAME ="测试02";
+        process.setId(PROCESSID);
+        process.setName(PROCESSNAME);
+
+        process.addFlowElement(createStartEvent());
+        process.addFlowElement(createUserTask("task1", "节点01", "candidateGroup1"));
+        process.addFlowElement(createExclusiveGateway("createExclusiveGateway1"));
+        process.addFlowElement(createUserTask("task2", "节点02", "candidateGroup2"));
+        process.addFlowElement(createEndEvent());
+
+        process.addFlowElement(createSequenceFlow("startEvent", "task1", "", ""));
+        process.addFlowElement(createSequenceFlow("task1", "createExclusiveGateway1", "", ""));
+        process.addFlowElement(createSequenceFlow("createExclusiveGateway1", "task2", "通过", "${pass=='1'}"));
+        process.addFlowElement(createSequenceFlow("createExclusiveGateway1", "endEvent", "不通过", "${pass=='2'}"));
+        process.addFlowElement(createSequenceFlow("task2", "endEvent", "通过", "${pass=='1'}"));
+
+        // 2. Generate graphical information
+        new BpmnAutoLayout(model).execute();
+
+        // 3. Deploy the process to the engine
+        Deployment deployment = repositoryService.createDeployment().addBpmnModel(PROCESSID+".bpmn", model).name(PROCESSID+"_deployment").deploy();
+
+        // 4. Start a process instance
+        ProcessInstance processInstance = runtimeService.startProcessInstanceByKey(PROCESSID);
+
+        // 5. Check if task is available
+        List<Task> tasks = taskService.createTaskQuery().processInstanceId(processInstance.getId()).list();
+        System.out.println(tasks.size());
+
+        // 6. Save process diagram to a file
+        InputStream processDiagram = repositoryService.getProcessDiagram(processInstance.getProcessDefinitionId());
+        FileUtils.copyInputStreamToFile(processDiagram, new File("D:\\Test\\activiti\\"+PROCESSID+".png"));
+
+        // 7. Save resulting BPMN xml to a file
+        InputStream processBpmn = repositoryService.getResourceAsStream(deployment.getId(), PROCESSID+".bpmn");
+        FileUtils.copyInputStreamToFile(processBpmn,new File("D:\\Test\\activiti\\"+PROCESSID+".bpmn"));
+
+        System.out.println(".........end...");
+    }
 }

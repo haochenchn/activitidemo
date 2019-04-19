@@ -20,6 +20,7 @@ import org.activiti.engine.repository.Deployment;
 import org.activiti.engine.repository.Model;
 import org.activiti.engine.repository.ProcessDefinition;
 import org.activiti.engine.task.Task;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -34,6 +35,7 @@ import javax.servlet.http.HttpSession;
 import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.*;
@@ -548,12 +550,27 @@ public class ActivitiController {
     @Autowired
     private ActivitiService activitiService;
 
+    /**
+     * 创建复杂工作流
+     * @throws IOException
+     */
     @RequestMapping(value = "/createProcess")
-    public void createProcess(){
-        try {
-            activitiService.createProcess();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+    public void createProcess() throws IOException {
+        activitiService.createProcess();
+    }
+
+    /**
+     * 创建一个简单的工作流
+     * @throws IOException
+     */
+    @RequestMapping(value = "/createSimpleProcess")
+    public void createSimpleProcess() throws IOException {
+        activitiService.createSimpleProcess();
+    }
+    @RequestMapping(value = "/download")
+    public void download(String depId,String name) throws IOException {
+        InputStream processBpmn = repositoryService.getResourceAsStream(depId, name+".bpmn");
+        FileUtils.copyInputStreamToFile(processBpmn,new File("D:\\Test\\activiti\\"+depId+".bpmn"));
+
     }
 }

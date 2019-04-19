@@ -1,6 +1,7 @@
 package com.aaron.activiti.controller;
 
 import com.aaron.activiti.model.*;
+import com.aaron.activiti.service.ActivitiService;
 import com.aaron.activiti.util.Const;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -11,10 +12,7 @@ import org.activiti.bpmn.model.Process;
 import org.activiti.bpmn.model.UserTask;
 import org.activiti.editor.constants.ModelDataJsonConstants;
 import org.activiti.editor.language.json.converter.BpmnJsonConverter;
-import org.activiti.engine.HistoryService;
-import org.activiti.engine.RepositoryService;
-import org.activiti.engine.RuntimeService;
-import org.activiti.engine.TaskService;
+import org.activiti.engine.*;
 import org.activiti.engine.history.HistoricTaskInstance;
 import org.activiti.engine.history.HistoricVariableInstance;
 import org.activiti.engine.identity.User;
@@ -36,6 +34,7 @@ import javax.servlet.http.HttpSession;
 import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.*;
 
@@ -46,7 +45,7 @@ import java.util.*;
  */
 @RequestMapping("/activiti")
 @Controller
-public class activitiController {
+public class ActivitiController {
     @Autowired
     private RepositoryService repositoryService;
     @Autowired
@@ -544,5 +543,17 @@ public class activitiController {
     public User getAccount(HttpServletRequest req){
         User user = (User)req.getSession().getAttribute(Const.SESSION_ACCOUNT);
         return user;
+    }
+
+    @Autowired
+    private ActivitiService activitiService;
+
+    @RequestMapping(value = "/createProcess")
+    public void createProcess(){
+        try {
+            activitiService.createProcess();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }

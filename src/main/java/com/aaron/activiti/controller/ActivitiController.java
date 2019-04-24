@@ -206,7 +206,8 @@ public class ActivitiController {
                 String processName = modelData.getName() + ".bpmn20.xml";
                 Deployment deployment = repositoryService.createDeployment()
                         .name(modelData.getName())
-                        .addString(processName, new String(bpmnBytes)).deploy();
+                        .addString(processName, new String(bpmnBytes,"UTF-8")).deploy();
+//                -Dfile.encoding="UTF-8"
                 if (deployment != null && deployment.getId() != null) {
                     map.put("result", "success");
                 }

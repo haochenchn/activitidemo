@@ -24,7 +24,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 @RestController
 public class ProcessDefinitionDiagramLayoutResource extends BaseProcessDefinitionDiagramLayoutResource {
 
-  @RequestMapping(value="/process-definition/{processDefinitionId}/diagram-layout", method = RequestMethod.GET, produces = "application/json")
+  @RequestMapping(value="/process-definition/{processDefinitionId}/diagram-layout", method = RequestMethod.GET, produces = "application/json;charset=UTF-8")
   public ObjectNode getDiagram(@PathVariable String processDefinitionId) {
     return getDiagramNode(null, processDefinitionId);
   }

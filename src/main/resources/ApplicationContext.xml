@@ -71,15 +71,18 @@
     </bean>
 
     <bean id="processEngineConfiguration" class="org.activiti.spring.SpringProcessEngineConfiguration">
-        <property name="dataSource" ref="dataSource" />
-        <property name="databaseSchemaUpdate" value="true" />
+        <property name="dataSource" ref="dataSource"/>
+        <!-- 设置建表策略，如果没有表，自动创建表 -->
+        <property name="databaseSchemaUpdate" value="true"/>
         <property name="jobExecutorActivate" value="false"/>
         <property name="history" value="full"/>
-        <property name="transactionManager" ref="transactionManager" />
-        <!-- 配置事务管理器，统一事务 -->
-
-        <!-- 设置建表策略，如果没有表，自动创建表 -->
+        <property name="transactionManager" ref="transactionManager"/>
+        <!-- 解决发布部署模型获取图片中文乱码 -->
+        <property name="activityFontName" value="微软雅黑" />
+        <property name="annotationFontName" value="微软雅黑" />
+        <property name="labelFontName" value="微软雅黑" />
     </bean>
+
     <!-- 创建流程引擎对象 -->
     <bean id="processEngine" class="org.activiti.spring.ProcessEngineFactoryBean">
         <property name="processEngineConfiguration" ref="processEngineConfiguration" />
@@ -98,7 +101,6 @@
 
 
     <!--start mybatis配置-->
-    <!-- myBatis文件 -->
     <bean id="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
         <property name="dataSource" ref="dataSource" />
         <property name="configLocation" value="classpath:mybatis-config.xml" />
@@ -107,10 +109,6 @@
         <!-- mapper扫描 -->
         <property name="mapperLocations" value="classpath:com/aaron/**/*.xml" />
     </bean>
-    <!--<bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
-        <property name="basePackage" value="com.aaron" />
-        <property name="sqlSessionFactoryBeanName" value="sqlSessionFactory" />
-    </bean>-->
     <bean id="sqlSessionTemplate" class="org.mybatis.spring.SqlSessionTemplate" scope="prototype">
         <constructor-arg ref="sqlSessionFactory" />
     </bean>

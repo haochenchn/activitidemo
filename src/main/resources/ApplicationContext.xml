@@ -79,7 +79,7 @@
         <property name="transactionManager" ref="transactionManager"/>
         <!-- 解决发布部署模型获取图片中文乱码 -->
         <property name="activityFontName" value="微软雅黑" />
-        <property name="annotationFontName" value="微软雅黑" />
+        <!--<property name="annotationFontName" value="微软雅黑" />-->
         <property name="labelFontName" value="微软雅黑" />
     </bean>
 

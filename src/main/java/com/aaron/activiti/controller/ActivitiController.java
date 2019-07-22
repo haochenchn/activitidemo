@@ -6,10 +6,8 @@ import com.aaron.activiti.util.Const;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.activiti.bpmn.converter.BpmnXMLConverter;
-import org.activiti.bpmn.model.BpmnModel;
-import org.activiti.bpmn.model.FlowElement;
+import org.activiti.bpmn.model.*;
 import org.activiti.bpmn.model.Process;
-import org.activiti.bpmn.model.UserTask;
 import org.activiti.editor.constants.ModelDataJsonConstants;
 import org.activiti.editor.language.json.converter.BpmnJsonConverter;
 import org.activiti.engine.*;
@@ -20,9 +18,13 @@ import org.activiti.engine.repository.Deployment;
 import org.activiti.engine.repository.Model;
 import org.activiti.engine.repository.ProcessDefinition;
 import org.activiti.engine.task.Task;
+import org.apache.batik.transcoder.TranscoderInput;
+import org.apache.batik.transcoder.TranscoderOutput;
+import org.apache.batik.transcoder.image.PNGTranscoder;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
@@ -32,10 +34,8 @@ import javax.servlet.http.HttpSession;
 import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
+import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 /**
@@ -582,6 +582,53 @@ public class ActivitiController {
     }
 
     /**
+     * 保存模型
+     *
+     * @param modelId
+     * @param name
+     * @param description
+     * @param json_xml
+     * @param svg_xml
+     */
+    @RequestMapping(value = "/service/model/{modelId}/save", method = RequestMethod.PUT)
+    @ResponseStatus(value = HttpStatus.OK)
+    public void saveModel(@PathVariable String modelId
+            , String name, String description
+            , String json_xml, String svg_xml) {
+        try {
+
+            Model model = repositoryService.getModel(modelId);
+
+            ObjectNode modelJson = (ObjectNode) new ObjectMapper().readTree(model.getMetaInfo());
+
+            modelJson.put("ewew", name);
+            modelJson.put("43434", description);
+            model.setMetaInfo(modelJson.toString());
+            model.setName(name);
+
+            repositoryService.saveModel(model);
+            repositoryService.addModelEditorSource(model.getId(), json_xml.getBytes(StandardCharsets.UTF_8));
+
+            InputStream svgStream = new ByteArrayInputStream(svg_xml.getBytes(StandardCharsets.UTF_8));
+            TranscoderInput input = new TranscoderInput(svgStream);
+
+            PNGTranscoder transcoder = new PNGTranscoder();
+            // Setup output
+            ByteArrayOutputStream outStream = new ByteArrayOutputStream();
+            TranscoderOutput output = new TranscoderOutput(outStream);
+
+            // Do the transformation
+            transcoder.transcode(input, output);
+            final byte[] result = outStream.toByteArray();
+            repositoryService.addModelEditorSourceExtra(model.getId(), result);
+            outStream.close();
+
+        } catch (Exception e) {
+            throw new ActivitiException("Error saving model", e);
+        }
+    }
+
+    /**
      * 验证是否登录
      * @param req
      * @return
@@ -616,5 +663,33 @@ public class ActivitiController {
         InputStream processBpmn = repositoryService.getResourceAsStream(depId, name+".bpmn");
         FileUtils.copyInputStreamToFile(processBpmn,new File("D:\\Test\\activiti\\"+depId+".bpmn"));
 
+    }
+
+    /**
+     * 创建节点任务 使用监听设置处理人
+     * @param id 任务id标识
+     * @param name 任务名称
+     * @param taskListenerList 监听的集合,TaskListener实现类的的具体路径例：com.sky.bluesky.activiti.utils.MangerTaskHandlerCandidateUsers
+     * @return
+     */
+    public UserTask createUserTask(String id, String name, List<String> taskListenerList) {
+        UserTask userTask = new UserTask();
+        userTask.setName(name);
+        userTask.setId(id);
+
+
+        List<ActivitiListener> list = new ArrayList<ActivitiListener>();
+        for (String taskListener : taskListenerList) {
+            ActivitiListener listener = new ActivitiListener();
+            listener.setEvent("create");
+//Spring配置以变量形式调用无法写入，只能通过继承TaskListener方法，
+            listener.setImplementationType("class");
+            listener.setImplementation(taskListener);
+
+            list.add(listener);
+
+        }
+        userTask.setTaskListeners(list);
+        return userTask;
     }
 }

@@ -13,7 +13,7 @@
 
     <properties>
         <activiti.version>5.22.0</activiti.version>
-        <spring.version>4.3.23.RELEASE</spring.version>
+        <spring.version>4.3.13.RELEASE</spring.version>
         <jackson.version>2.7.5</jackson.version>
     </properties>
     <dependencies>
@@ -137,7 +137,9 @@
             <artifactId>druid</artifactId>
             <version>1.0.18</version>
         </dependency>
-
+<!--
+activiti-json-converter
+-->
         <dependency>
             <groupId>org.activiti</groupId>
             <artifactId>activiti-spring</artifactId>
@@ -145,10 +147,51 @@
         </dependency>
 
     </dependencies>
+    <repositories>
+        <repository>
+            <id>maven-public</id>
+            <name>maven-public</name>
+            <url>http://192.168.33.101:8081/repository/maven-public/</url>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+        </repository>
+    </repositories>
+
+    <distributionManagement>
+        <!-- 用于上传的仓库 -->
+        <repository>
+            <!-- 这里的id需要和settings.xml中的server的id一致 -->
+            <id>dev</id>
+            <name>3rd</name>
+            <!-- third是一个hosted类型的仓库，用于存放第三方或自己的jar包 -->
+            <url>http://192.168.33.101:8081/repository/maven-public/</url>
+        </repository>
+    </distributionManagement>
 
     <build>
         <finalName>activitidemo</finalName>
         <plugins>
+            <!-- 要将源码放上去，需要加入这个插件 -->
+            <plugin>
+                <artifactId>maven-source-plugin</artifactId>
+                <version>2.4</version>
+                <configuration>
+                    <attach>true</attach>
+                </configuration>
+                <executions>
+                    <execution>
+                        <phase>compile</phase>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>

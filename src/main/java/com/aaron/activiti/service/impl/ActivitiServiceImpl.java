@@ -1,16 +1,26 @@
 package com.aaron.activiti.service.impl;
 
+import com.aaron.activiti.model.ActivitiModel;
 import com.aaron.activiti.service.ActivitiService;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.activiti.bpmn.BpmnAutoLayout;
+import org.activiti.bpmn.converter.BpmnXMLConverter;
 import org.activiti.bpmn.model.*;
 import org.activiti.bpmn.model.Process;
+import org.activiti.editor.constants.ModelDataJsonConstants;
+import org.activiti.editor.language.json.converter.BpmnJsonConverter;
 import org.activiti.engine.ProcessEngine;
 import org.activiti.engine.RepositoryService;
 import org.activiti.engine.RuntimeService;
 import org.activiti.engine.TaskService;
 import org.activiti.engine.repository.Deployment;
+import org.activiti.engine.repository.Model;
 import org.activiti.engine.runtime.ProcessInstance;
 import org.activiti.engine.task.Task;
+import org.activiti.validation.ProcessValidator;
+import org.activiti.validation.ProcessValidatorFactory;
+import org.activiti.validation.ValidationError;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -117,6 +127,34 @@ public class ActivitiServiceImpl implements ActivitiService {
         // 2. Generate graphical information
         new BpmnAutoLayout(model).execute();
 
+        /*
+         * 将bpmnModel 转化为xml
+         * */
+        BpmnXMLConverter bpmnXMLConverter=new BpmnXMLConverter();
+        byte[] convertToXML = bpmnXMLConverter.convertToXML(model);
+        String bytes=new String(convertToXML);
+        System.out.println(bytes);
+
+        /**
+         * 将bpmn转换成json
+         */
+        BpmnJsonConverter jsonConverter = new BpmnJsonConverter();
+        ObjectNode jsonNodes = jsonConverter.convertToJson(model);
+        byte[] jsonByte = jsonNodes.toString().getBytes("utf-8");
+
+
+        //验证bpmnModel 是否是正确的bpmn xml文件
+        ProcessValidatorFactory processValidatorFactory=new ProcessValidatorFactory();
+        ProcessValidator defaultProcessValidator = processValidatorFactory.createDefaultProcessValidator();
+        //验证失败信息的封装ValidationError
+        List<ValidationError> validate = defaultProcessValidator.validate(model);
+
+        System.out.println("ValidationError sum::::"+validate.size());
+
+
+        Model newModel = this.createModel();
+        repositoryService.addModelEditorSource(newModel.getId(),jsonByte);
+
         // 3. Deploy the process to the engine
         Deployment deployment = repositoryService.createDeployment().addBpmnModel(PROCESSID+".bpmn", model).name(PROCESSID+" Dynamic process deployment").deploy();
 
@@ -129,11 +167,11 @@ public class ActivitiServiceImpl implements ActivitiService {
 
         // 6. Save process diagram to a file
         InputStream processDiagram = repositoryService.getProcessDiagram(processInstance.getProcessDefinitionId());
-        FileUtils.copyInputStreamToFile(processDiagram, new File("target/"+PROCESSID+".png"));
+        FileUtils.copyInputStreamToFile(processDiagram, new File("D:/Test/"+PROCESSID+".png"));
 
         // 7. Save resulting BPMN xml to a file
         InputStream processBpmn = repositoryService.getResourceAsStream(deployment.getId(), PROCESSID+".bpmn");
-        FileUtils.copyInputStreamToFile(processBpmn,new File("target/"+PROCESSID+".bpmn"));
+        FileUtils.copyInputStreamToFile(processBpmn,new File("D:/Test/"+PROCESSID+".bpmn"));
 
         System.out.println(".........end...");
     }
@@ -161,15 +199,24 @@ public class ActivitiServiceImpl implements ActivitiService {
         process.addFlowElement(createSequenceFlow("createExclusiveGateway1", "task2", "通过", "${pass=='1'}"));
         process.addFlowElement(createSequenceFlow("createExclusiveGateway1", "endEvent", "不通过", "${pass=='2'}"));
         process.addFlowElement(createSequenceFlow("task2", "endEvent", "通过", "${pass=='1'}"));
-
-        // 2. Generate graphical information
+// 2. Generate graphical information
         new BpmnAutoLayout(model).execute();
+        /**
+         * 将bpmn转换成json
+         */
+        BpmnJsonConverter jsonConverter = new BpmnJsonConverter();
+        ObjectNode jsonNodes = jsonConverter.convertToJson(model);
+        byte[] jsonByte = jsonNodes.toString().getBytes("utf-8");
+
+        Model newModel = this.createModel();
+        repositoryService.addModelEditorSource(newModel.getId(),jsonByte);
 
         // 3. Deploy the process to the engine
-        Deployment deployment = repositoryService.createDeployment().addBpmnModel(PROCESSID+".bpmn", model).name(PROCESSID+" Dynamic process deployment").deploy();
+//        Deployment deployment = repositoryService.createDeployment().addBpmnModel(PROCESSID+".bpmn", model).name(PROCESSID+" Dynamic process deployment").deploy();
+        Deployment deployment = repositoryService.createDeployment().name(newModel.getName()).addString(newModel.getName(),new String(jsonByte,"utf-8")).deploy();
 
         // 4. Start a process instance
-        ProcessInstance processInstance = runtimeService.startProcessInstanceByKey(PROCESSID);
+        /*ProcessInstance processInstance = runtimeService.startProcessInstanceByKey(PROCESSID);
 
         // 5. Check if task is available
         List<Task> tasks = taskService.createTaskQuery().processInstanceId(processInstance.getId()).list();
@@ -181,8 +228,24 @@ public class ActivitiServiceImpl implements ActivitiService {
 
         // 7. Save resulting BPMN xml to a file
         InputStream processBpmn = repositoryService.getResourceAsStream(deployment.getId(), PROCESSID+".bpmn");
-        FileUtils.copyInputStreamToFile(processBpmn,new File("target/"+PROCESSID+".bpmn"));
+        FileUtils.copyInputStreamToFile(processBpmn,new File("target/"+PROCESSID+".bpmn"));*/
 
         System.out.println(".........end...");
+    }
+
+    public Model createModel(){
+        Model newModel = repositoryService.newModel();
+        ObjectMapper objectMapper = new ObjectMapper();
+        ObjectNode modelObjectNode = objectMapper.createObjectNode();
+        modelObjectNode.put(ModelDataJsonConstants.MODEL_NAME,
+                "测试模型");
+        modelObjectNode.put(ModelDataJsonConstants.MODEL_REVISION, 1);
+        modelObjectNode.put(ModelDataJsonConstants.MODEL_DESCRIPTION,
+                StringUtils.defaultString("hello model"));
+        newModel.setMetaInfo(modelObjectNode.toString());
+        newModel.setName("测试模型");
+        newModel.setKey(StringUtils.defaultString("process"));
+        repositoryService.saveModel(newModel);
+        return newModel;
     }
 }

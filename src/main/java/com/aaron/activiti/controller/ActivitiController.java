@@ -303,7 +303,7 @@ public class ActivitiController {
                 Iterator<FlowElement> iterator = this.findFlow(processDefId);
                 Map<String, Object> varables = new HashMap<>();
                 int i = 1;
-                while (iterator.hasNext()) {
+                /*while (iterator.hasNext()) {
                     FlowElement flowElement = iterator.next();
                     // 申请人
                     if (flowElement.getClass().getSimpleName()
@@ -339,7 +339,7 @@ public class ActivitiController {
                         }
                         break;
                     }
-                }
+                }*/
                 // ///////////////////////////
                 runtimeService.startProcessInstanceByKey(processKey, varables);
                 map.put("userName",user.getId());

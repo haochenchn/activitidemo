@@ -1,8 +1,9 @@
-<%@ page language="java" contentType="text/html; charset=UTF-8"
-pageEncoding="UTF-8"%>
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 <!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
 <html>
 <head>
+    <%@ include file="common/global.jsp"%>
+    <%@ include file="common/meta.jsp"%>
     <meta http-equiv="Content-Type" content="text/html;charset=UTF-8">
 
     <title>登录</title>
@@ -84,7 +85,7 @@ pageEncoding="UTF-8"%>
     </style>
 </head>
 <body>
-    <form id="login" action="http://localhost:8080/activitidemo/login/login" method="post">
+    <form id="login" action="${ctx}/login/login" method="post">
         <h1>Log In</h1>
         <fieldset id="inputs">
             <input id="id" name="id" type="text" placeholder="Username" autofocus required>

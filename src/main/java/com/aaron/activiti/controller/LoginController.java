@@ -22,17 +22,16 @@ public class LoginController {
     private IdentityService identityService;
 
     @RequestMapping(value = "/login")
-    @ResponseBody
-    public Object login(String id,String pwd,HttpServletRequest req){
+    public String login(String id,String pwd,HttpServletRequest req){
         boolean b = identityService.checkPassword(id, pwd);
         User user = identityService.createUserQuery().userId(id).singleResult();
         if(b){
             req.getSession().setAttribute(Const.SESSION_ACCOUNT, user);
-            return "登陆成功";
+            return "redirect:/model/list";
         }else {
             req.getSession().removeAttribute(Const.SESSION_ACCOUNT);
             req.getSession().invalidate();
-            return "登陆失败";
+            return "error";
         }
     }
 }

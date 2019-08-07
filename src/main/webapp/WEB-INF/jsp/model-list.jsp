@@ -108,6 +108,7 @@
 
 </head>
 <body>
+<h1 style="text-align: center">模型列表</h1>
 <c:if test="${not empty message}">
     <div>
         <div style="margin-top: 20px; padding: 0 .7em;">
@@ -123,7 +124,7 @@
         <p class="close"><a href="#" onclick="closeBg();">关闭</a></p>
         <div id="createModelTemplate" title="创建模型" class="template">
             <form id="modelForm" action="${ctx}/model/create" target="_blank" method="post">
-                <table>
+                <table >
                     <tr>
                         <td>名称：</td>
                         <td>
@@ -150,7 +151,7 @@
 </div>
 
 <%--<div style="text-align: right"><button id="create">创建</button></div>--%>
-<table width="100%" class="need-border">
+<table width="100%" border="1" style="border-color: #9fbbb4; border-collapse: collapse;">
     <thead>
     <tr>
         <th>ID</th>
@@ -175,11 +176,10 @@
             <td>${model.metaInfo}</td>
             <td>
                 <a href="${ctx}/modeler.html?modelId=${model.id}" target="_blank">编辑</a>
-                <a href="${ctx}/workflow/model/deploy/${model.id}">部署</a>
-                导出(<a href="${ctx}/workflow/model/export/${model.id}/bpmn" target="_blank">BPMN</a>
-                |&nbsp;<a href="${ctx}/workflow/model/export/${model.id}/json" target="_blank">JSON</a>
-                |&nbsp;<a href="javascript:;" onclick='showSvgTip()'>SVG</a>)
-                <a href="${ctx}/workflow/model/delete/${model.id}">删除</a>
+                <a href="${ctx}/model/deploy/${model.id}">部署</a>
+                导出(<a href="${ctx}/model/export/${model.id}/bpmn" target="_blank">BPMN</a>
+                |&nbsp;<a href="${ctx}/model/export/${model.id}/json" target="_blank">JSON</a>)
+                <a href="${ctx}/model/delete/${model.id}">删除</a>
             </td>
         </tr>
     </c:forEach>

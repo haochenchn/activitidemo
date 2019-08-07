@@ -1,4 +1,4 @@
-package com.aaron.activiti.controller;
+package com.aaron.system.controller;
 
 import com.aaron.activiti.util.Const;
 import org.activiti.engine.IdentityService;
@@ -27,7 +27,7 @@ public class LoginController {
         User user = identityService.createUserQuery().userId(id).singleResult();
         if(b){
             req.getSession().setAttribute(Const.SESSION_ACCOUNT, user);
-            return "redirect:/model/list";
+            return "redirect:/index/toHome";
         }else {
             req.getSession().removeAttribute(Const.SESSION_ACCOUNT);
             req.getSession().invalidate();

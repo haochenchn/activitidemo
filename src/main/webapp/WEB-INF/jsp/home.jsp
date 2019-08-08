@@ -23,6 +23,9 @@
     <tr>
         <th><a href="${ctx}/process/process-list" target="_blank">流程列表</a></th>
     </tr>
+    <tr>
+        <th><a href="${ctx}/process/list/running" target="_blank">运行中流程</a></th>
+    </tr>
 </table>
 </body>
 </html>

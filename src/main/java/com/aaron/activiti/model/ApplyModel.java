@@ -29,9 +29,9 @@ public class ApplyModel {
      */
     private String content;
     /**
-     * 处理人，即下一个任务节点的受理人
+     * 业务id
      */
-    private String proPerson;
+    private String businessKey;
 
 
     public String getKey() {
@@ -73,16 +73,13 @@ public class ApplyModel {
         this.content = content;
     }
 
-
-    public String getProPerson() {
-        return proPerson;
+    public String getBusinessKey() {
+        return businessKey;
     }
 
-
-    public void setProPerson(String proPerson) {
-        this.proPerson = proPerson;
+    public void setBusinessKey(String businessKey) {
+        this.businessKey = businessKey;
     }
-
 
     public String getName() {
         return name;
@@ -103,11 +100,4 @@ public class ApplyModel {
         this.proDefId = proDefId;
     }
 
-
-    @Override
-    public String toString() {
-        return "applyModel [proDefId=" + proDefId + ", key=" + key + ", name="
-                + name + ", appPerson=" + appPerson + ", cause=" + cause
-                + ", content=" + content + ", proPerson=" + proPerson + "]";
-    }
 }

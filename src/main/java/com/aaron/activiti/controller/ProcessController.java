@@ -1,5 +1,9 @@
 package com.aaron.activiti.controller;
 
+import com.aaron.activiti.model.ApplyModel;
+import com.aaron.activiti.model.ProcessModel;
+import com.aaron.activiti.service.IProcessService;
+import com.aaron.activiti.util.Const;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.activiti.bpmn.converter.BpmnXMLConverter;
@@ -7,6 +11,7 @@ import org.activiti.bpmn.model.BpmnModel;
 import org.activiti.editor.constants.ModelDataJsonConstants;
 import org.activiti.editor.language.json.converter.BpmnJsonConverter;
 import org.activiti.engine.RepositoryService;
+import org.activiti.engine.identity.User;
 import org.activiti.engine.repository.Deployment;
 import org.activiti.engine.repository.ProcessDefinition;
 import org.apache.commons.io.FilenameUtils;
@@ -18,8 +23,10 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamException;
@@ -40,6 +47,9 @@ import java.util.zip.ZipInputStream;
 @RequestMapping("/process")
 public class ProcessController {
     protected Logger logger = Logger.getLogger(getClass());
+
+    @Autowired
+    private IProcessService processService;
 
     @Autowired
     private RepositoryService repositoryService;
@@ -176,5 +186,30 @@ public class ProcessController {
         repositoryService.addModelEditorSource(modelData.getId(), modelNode.toString().getBytes("utf-8"));
 
         return "redirect:/model/list";
+    }
+
+    @RequestMapping(value = "/startProcess")
+    public String startProcess(ApplyModel applyModel, HttpServletRequest request, RedirectAttributes redirectAttributes){
+        Object attribute = request.getSession().getAttribute(Const.SESSION_ACCOUNT);
+        if (attribute == null){
+            redirectAttributes.addFlashAttribute("message", "用户未登录");
+        }
+        applyModel.setAppPerson(((User)attribute).getId());
+        processService.startProcessByKey(applyModel, null);
+        logger.debug("start process of"+ applyModel.getKey());
+        redirectAttributes.addFlashAttribute("message", "已启动流程："+applyModel.getKey());
+        return "redirect:/process/process-list";
+    }
+
+    /**
+     * 读取运行中的流程实例
+     *
+     * @return
+     */
+    @RequestMapping(value = "/list/running")
+    public String runningList(Model model){
+        List<ProcessModel> runningProcessInstaces = processService.findRunningProcessInstaces();
+        model.addAttribute("process", runningProcessInstaces);
+        return "running";
     }
 }

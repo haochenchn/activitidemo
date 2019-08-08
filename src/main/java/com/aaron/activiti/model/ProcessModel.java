@@ -1,5 +1,7 @@
 package com.aaron.activiti.model;
 
+import java.util.Date;
+
 /**
  * @author Aaron
  * @description 自定义的流程定义实体类
@@ -13,7 +15,14 @@ public class ProcessModel {
     private int version;
     private String name;
     private String diagramResourceName;
-
+    private String appPerson;
+    private Date startTime;
+    private Date endTime;
+    private boolean suspended;
+    private String currentTaskName;
+    private String currentTaskId;
+    private Date curretTaskTime;
+    private String currentAssign;
 
     public String getName() {
         return name;
@@ -84,12 +93,67 @@ public class ProcessModel {
         this.version = version;
     }
 
+    public String getAppPerson() {
+        return appPerson;
+    }
 
-    @Override
-    public String toString() {
-        return "processModel [id=" + id + ", deploymentId=" + deploymentId
-                + ", key=" + key + ", resourceName=" + resourceName
-                + ", version=" + version + ", name=" + name
-                + ", diagramResourceName=" + diagramResourceName + "]";
+    public void setAppPerson(String appPerson) {
+        this.appPerson = appPerson;
+    }
+
+    public Date getStartTime() {
+        return startTime;
+    }
+
+    public void setStartTime(Date startTime) {
+        this.startTime = startTime;
+    }
+
+    public Date getEndTime() {
+        return endTime;
+    }
+
+    public void setEndTime(Date endTime) {
+        this.endTime = endTime;
+    }
+
+    public boolean isSuspended() {
+        return suspended;
+    }
+
+    public void setSuspended(boolean suspended) {
+        this.suspended = suspended;
+    }
+
+    public String getCurrentTaskName() {
+        return currentTaskName;
+    }
+
+    public void setCurrentTaskName(String currentTaskName) {
+        this.currentTaskName = currentTaskName;
+    }
+
+    public String getCurrentTaskId() {
+        return currentTaskId;
+    }
+
+    public void setCurrentTaskId(String currentTaskId) {
+        this.currentTaskId = currentTaskId;
+    }
+
+    public Date getCurretTaskTime() {
+        return curretTaskTime;
+    }
+
+    public void setCurretTaskTime(Date curretTaskTime) {
+        this.curretTaskTime = curretTaskTime;
+    }
+
+    public String getCurrentAssign() {
+        return currentAssign;
+    }
+
+    public void setCurrentAssign(String currentAssign) {
+        this.currentAssign = currentAssign;
     }
 }

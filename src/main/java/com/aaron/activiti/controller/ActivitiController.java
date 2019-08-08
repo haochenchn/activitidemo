@@ -1,7 +1,7 @@
 package com.aaron.activiti.controller;
 
 import com.aaron.activiti.model.*;
-import com.aaron.activiti.service.ActivitiService;
+import com.aaron.activiti.service.IActivitiService;
 import com.aaron.activiti.util.Const;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -30,7 +30,6 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import javax.servlet.http.HttpSession;
 import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
@@ -639,7 +638,7 @@ public class ActivitiController {
     }
 
     @Autowired
-    private ActivitiService activitiService;
+    private IActivitiService IActivitiService;
 
     /**
      * 创建复杂工作流
@@ -647,7 +646,7 @@ public class ActivitiController {
      */
     @RequestMapping(value = "/createProcess")
     public void createProcess() throws IOException {
-        activitiService.createProcess();
+        IActivitiService.createProcess();
     }
 
     /**
@@ -656,7 +655,7 @@ public class ActivitiController {
      */
     @RequestMapping(value = "/createSimpleProcess")
     public void createSimpleProcess() throws IOException {
-        activitiService.createSimpleProcess();
+        IActivitiService.createSimpleProcess();
     }
     @RequestMapping(value = "/download")
     public void download(String depId,String name) throws IOException {

@@ -1,7 +1,6 @@
 package com.aaron.activiti.service.impl;
 
-import com.aaron.activiti.model.ActivitiModel;
-import com.aaron.activiti.service.ActivitiService;
+import com.aaron.activiti.service.IActivitiService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.activiti.bpmn.BpmnAutoLayout;
@@ -10,7 +9,6 @@ import org.activiti.bpmn.model.*;
 import org.activiti.bpmn.model.Process;
 import org.activiti.editor.constants.ModelDataJsonConstants;
 import org.activiti.editor.language.json.converter.BpmnJsonConverter;
-import org.activiti.engine.ProcessEngine;
 import org.activiti.engine.RepositoryService;
 import org.activiti.engine.RuntimeService;
 import org.activiti.engine.TaskService;
@@ -38,7 +36,7 @@ import java.util.List;
  * @date 2019/4/19
  */
 @Service("activitiService")
-public class ActivitiServiceImpl implements ActivitiService {
+public class ActivitiServiceImpl implements IActivitiService {
     @Autowired
     private RepositoryService repositoryService;
     @Autowired

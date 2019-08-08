@@ -1,4 +1,4 @@
-<%@ page contentType="text/html;charset=UTF-8" language="java" %>
+<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" language="java" %>
 <html>
 <head>
 	<%@ include file="common/global.jsp"%>
@@ -83,6 +83,7 @@
 					<td>
                         <a href='${ctx }/process/delete?deploymentId=${process.deploymentId}'>删除</a>
                         <a href='${ctx }/process/convert-to-model/${process.id}'>转换为Model</a>
+                        <a href='${ctx }/process/startProcess?key=${process.key}'>启动</a>
                     </td>
 				</tr>
 			</c:forEach>

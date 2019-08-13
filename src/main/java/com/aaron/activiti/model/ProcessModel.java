@@ -18,6 +18,7 @@ public class ProcessModel {
     private String appPerson;
     private Date startTime;
     private Date endTime;
+    private String procInstanceId;
     private boolean suspended;
     private String currentTaskName;
     private String currentTaskId;
@@ -28,6 +29,13 @@ public class ProcessModel {
         return name;
     }
 
+    public String getProcInstanceId() {
+        return procInstanceId;
+    }
+
+    public void setProcInstanceId(String procInstanceId) {
+        this.procInstanceId = procInstanceId;
+    }
 
     public void setName(String name) {
         this.name = name;

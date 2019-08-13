@@ -28,7 +28,7 @@
 				<td>${proc.startTime }</td>
 				<td>${proc.endTime }</td>
 				<td>
-					<a href='#' title="点击查看流程图">${proc.currentTaskName }</a>
+					<a href='${ctx}/diagram-viewer/index.html?processDefinitionId=${proc.id}&processInstanceId=${proc.procInstanceId}' target="_parent" title="点击查看流程图">${proc.currentTaskName }</a>
 				</td>
 				<td>${proc.curretTaskTime }</td>
 				<td>${proc.suspended ? "已挂起" : "正常" }；<b title='流程版本号'>V: ${proc.version }</b></td>

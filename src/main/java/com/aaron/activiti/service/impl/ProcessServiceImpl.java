@@ -57,9 +57,10 @@ public class ProcessServiceImpl implements IProcessService {
         List<ProcessInstance> list = runtimeService.createProcessInstanceQuery().active().orderByProcessDefinitionId().desc().list();
         for (ProcessInstance processInstance: list){
             ProcessModel procModel = new ProcessModel();
+            procModel.setId(processInstance.getProcessDefinitionId());
             procModel.setDeploymentId(processInstance.getDeploymentId());
             procModel.setVersion(processInstance.getProcessDefinitionVersion());
-            procModel.setId(processInstance.getProcessInstanceId());
+            procModel.setProcInstanceId(processInstance.getProcessInstanceId());
             procModel.setSuspended(processInstance.isSuspended());
             HistoricProcessInstance historicProcessInstance = historyService.createHistoricProcessInstanceQuery().processInstanceId(processInstance.getProcessInstanceId()).singleResult();
             procModel.setAppPerson(historicProcessInstance.getStartUserId());

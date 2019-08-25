@@ -26,6 +26,9 @@
     <tr>
         <th><a href="${ctx}/process/list/running" target="_blank">运行中流程</a></th>
     </tr>
+    <tr>
+        <th><a href="${ctx}/task/list/todoTasks" target="_blank">任务列表</a></th>
+    </tr>
 </table>
 </body>
 </html>
